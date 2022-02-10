@@ -1,27 +1,44 @@
-import PhaserLogo from '../objects/phaserLogo'
-import FpsText from '../objects/fpsText'
+import { MegaMan, MetHat } from '../objects/sprites';
+import * as Phaser from 'phaser';
+import Level from '../objects/level';
+import levels from '../data/levels';
 
 export default class MainScene extends Phaser.Scene {
-  fpsText
+    player : MegaMan;
+    enemyGroup : Phaser.Physics.Arcade.Group;
+    level : Level;
 
-  constructor() {
-    super({ key: 'MainScene' })
-  }
+    constructor() {
+        super({ key: 'MainScene' });
+    }
 
-  create() {
-    new PhaserLogo(this, this.cameras.main.width / 2, 0)
-    this.fpsText = new FpsText(this)
+    create() {
+        this.enemyGroup = this.physics.add.group();
+        this.player = new MegaMan(this, 0, 0);
+        this.level = new Level(this, levels['level1']);
+        this.enemyGroup.add(new MetHat(this, 960, 0));
+        
+        this.physics.add.collider(this.player, this.enemyGroup);
+        this.physics.add.collider(this.player, this.level.blocks);
+        this.physics.add.collider(this.player.bulletGroup, this.level.blocks, (megaBusterShot) => {
+            megaBusterShot.destroy();
+        });
+        this.physics.add.collider(this.player.bulletGroup, this.enemyGroup, (megaBusterShot, obj2) => {
+            console.log("ENEMY HIT!");
+            let enemy : MetHat = obj2 as MetHat;
+            megaBusterShot.destroy();
+            enemy.onHit(megaBusterShot);
+        });
+        this.physics.add.collider(this.enemyGroup, this.level.blocks, (obj) => {
+            let enemy : MetHat = obj as MetHat;
+            enemy.onCollision();
+        });
+    }
 
-    // display the Phaser.VERSION
-    this.add
-      .text(this.cameras.main.width - 15, 15, `Phaser v${Phaser.VERSION}`, {
-        color: '#000000',
-        fontSize: '24px'
-      })
-      .setOrigin(1, 0)
-  }
-
-  update() {
-    this.fpsText.update()
-  }
+    update() {
+        this.player.update();
+        this.enemyGroup.children.each((enemy) => {
+            enemy.update();
+        })
+    }
 }
