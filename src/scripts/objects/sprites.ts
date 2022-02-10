@@ -12,14 +12,14 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
     };
 
     isShooting : boolean;
-    bulletGroup: Phaser.Physics.Arcade.Group;
+    bulletGroup: Phaser.Physics.Arcade.StaticGroup;
 
     constructor(scene : MainScene, x : integer, y : integer) {
         super(scene, x, y, 'megaman');
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        this.bulletGroup = scene.physics.add.group();
+        this.bulletGroup = scene.physics.add.staticGroup();
 
         this.scale *= 2;
         this.body.setSize(22, 22);
@@ -77,8 +77,6 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
     update(...args: any[]): void {
         super.update();
 
-        let scene : MainScene = this.scene as MainScene;
-
         // Controls
         if (this.controls.right.isDown) {
             this.setVelocityX(150);
@@ -125,6 +123,10 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             this.play(this.isShooting ? 'idle-gun' : 'idle');
         }
     }
+
+    onHit() {
+        console.log("OUCH");
+    }
 }
 
 export class MetHat extends Phaser.Physics.Arcade.Sprite {
@@ -162,6 +164,7 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
         this.play('idle');
 
         this.setCollideWorldBounds(true);
+        this.setInteractive();
         this.refreshBody();
     }
 
