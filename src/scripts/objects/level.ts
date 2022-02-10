@@ -1,18 +1,13 @@
 import * as Phaser from 'phaser';
 import { assetMap, AssetMapEntry, LevelConfig } from '../data/levels';
 
-export default class Level extends Phaser.GameObjects.GameObject {
+export default class Level {
     blocks: Phaser.Physics.Arcade.StaticGroup;
     levelConfig: LevelConfig;
 
     constructor(scene : Phaser.Scene, levelConfig : LevelConfig) {
-		super(scene, 'level');
 		this.levelConfig = levelConfig;
-
-		scene.add.existing(this);
-        scene.physics.add.existing(this);
-
-		this.blocks = this.scene.physics.add.staticGroup();
+		this.blocks = scene.physics.add.staticGroup();
 
 		for (let y = 0; y < this.levelConfig.blocksY; y++) {
 			for (let x = 0; x < this.levelConfig.blocksX; x++) {
