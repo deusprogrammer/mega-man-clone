@@ -8,10 +8,6 @@ export default class Level extends Phaser.GameObjects.GameObject {
     constructor(scene : Phaser.Scene, levelConfig : LevelConfig) {
 		super(scene, 'level');
 		this.levelConfig = levelConfig;
-
-		scene.add.existing(this);
-        scene.physics.add.existing(this);
-
 		this.blocks = this.scene.physics.add.staticGroup();
 
 		for (let y = 0; y < this.levelConfig.blocksY; y++) {

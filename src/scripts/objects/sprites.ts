@@ -12,18 +12,14 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
     };
 
     isShooting : boolean;
-    bulletGroup: Phaser.Physics.Arcade.StaticGroup;
+    bulletGroup: Phaser.Physics.Arcade.Group;
 
     constructor(scene : MainScene, x : integer, y : integer) {
         super(scene, x, y, 'megaman');
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        this.bulletGroup = scene.physics.add.staticGroup();
-
-        this.scale *= 2;
-        this.body.setSize(22, 22);
-        this.setOrigin(0.5, 0.5);
+        this.bulletGroup = scene.physics.add.group();
 
         this.anims.create({
             key: 'idle',
@@ -60,9 +56,15 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             repeat: 1
         });
 
+        this.scale *= 2;
         this.play('idle');
 
-        this.setCollideWorldBounds(true).setInteractive();
+        this
+            .setActive(true)
+            .setOrigin(0.5, 0.5)
+            .setCollideWorldBounds(true)
+            .setSize(22, 22)
+            .refreshBody();
 
         this.controls = {
             up: this.scene.input.keyboard.addKey('W'),
@@ -95,11 +97,13 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             this.isShooting = true;
 
             let megaBusterShot = this.scene.physics.add.sprite(this.x + 32, this.y, 'wood1');
-            this.bulletGroup.add(megaBusterShot);
+            this.scene.add.existing(megaBusterShot);
+            
+            this.bulletGroup.add(megaBusterShot, true);
 
             megaBusterShot.body.allowGravity = false;
             megaBusterShot
-                .refreshBody()
+                .setCollideWorldBounds(true)
                 .setVelocityX(this.flipX ? 300 : -300);
 
             setTimeout(() => {
@@ -122,10 +126,14 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         } else {
             this.play(this.isShooting ? 'idle-gun' : 'idle');
         }
+
+        this.bulletGroup.children.each((child) => {
+            child.update();
+        })
     }
 
     onHit() {
-        console.log("OUCH");
+        console.log("PLAYER HIT");
     }
 }
 
@@ -162,10 +170,6 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
 
         this.state = "idle";
         this.play('idle');
-
-        this.setCollideWorldBounds(true);
-        this.setInteractive();
-        this.refreshBody();
     }
 
     onCollision() {
@@ -178,22 +182,32 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
     }
 
     onHit(weapon) {
+        console.log("ENEMY HIT");
+
         this.destroy();
     }
 
     update() {
+        super.update();
+
         if (this.scene.game.loop.frame % 500 === 0 && this.body.touching.down && this.state === 'idle') {
             this.play('stand', true);
             this.state = 'standing';
 
             // Make him start walking shortly after standing up
             setTimeout(() => {
+                if (!this) {
+                    return;
+                }
                 this.state = 'walking';
                 this.setVelocityX(-200);
             }, 200);
 
             // Make him idle again after 10 seconds.
             setTimeout(() => {
+                if (!this || !this.body) {
+                    return;
+                }
                 this.state = 'idle';
                 this.setVelocityX(0);
                 this.play('idle');
