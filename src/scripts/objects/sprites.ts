@@ -11,6 +11,7 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         shoot: Phaser.Input.Keyboard.Key
     };
 
+    isGamepadConnected: boolean;
     isShooting : boolean;
     bulletGroup: Phaser.Physics.Arcade.Group;
 
@@ -74,26 +75,47 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             jump: this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
             shoot: this.scene.input.keyboard.addKey('J')
         };
+
+        this.scene.input.gamepad.once('connected', (pad) => {
+            this.isGamepadConnected = true;
+        });
     }
 
     update(...args: any[]): void {
         super.update();
 
+        let control = {
+            up: this.controls.up.isDown,
+            down: this.controls.down.isDown,
+            left: this.controls.left.isDown,
+            right: this.controls.right.isDown,
+            jump: this.controls.jump.isDown,
+            shoot: this.controls.shoot.isDown
+        };
+        if (this.isGamepadConnected) {
+            control.up      ||= this.scene.input.gamepad.gamepads[0].up;
+            control.down    ||= this.scene.input.gamepad.gamepads[0].down;
+            control.left    ||= this.scene.input.gamepad.gamepads[0].left;
+            control.right   ||= this.scene.input.gamepad.gamepads[0].right;
+            control.jump    ||= this.scene.input.gamepad.gamepads[0].A;
+            control.shoot   ||= this.scene.input.gamepad.gamepads[0].X;
+        }
+
         // Controls
-        if (this.controls.right.isDown) {
+        if (control.right) {
             this.setVelocityX(150);
-        } else if (this.controls.left.isDown) {
+        } else if (control.left) {
             this.setVelocityX(-150);
         } else {
             this.setVelocityX(0);
         }
 
         // If player is jumping
-        if (this.controls.jump.isDown && this.body.touching.down) {
+        if (control.jump && this.body.touching.down) {
             this.setVelocityY(-400);
         }
 
-        if (this.controls.shoot.isDown && !this.isShooting) {
+        if (control.shoot && !this.isShooting) {
             this.isShooting = true;
 
             let megaBusterShot = this.scene.physics.add.sprite(this.x + 32, this.y, 'wood1');
@@ -119,7 +141,7 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         }
 
         // If body is moving up or down, play jumping animation.
-        if (this.body.velocity.y !== 0) {
+        if (!this.body.touching.down) {
             this.play('jump', true);
         } else if (this.body.velocity.x !== 0) {
             this.play(this.isShooting ? 'walk-gun' : 'walk', true);
