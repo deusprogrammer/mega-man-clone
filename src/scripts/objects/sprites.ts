@@ -81,9 +81,7 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
-    update(...args: any[]): void {
-        super.update();
-
+    getControllerState() {
         let control = {
             up: this.controls.up.isDown,
             down: this.controls.down.isDown,
@@ -100,6 +98,13 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             control.jump    ||= this.scene.input.gamepad.gamepads[0].A;
             control.shoot   ||= this.scene.input.gamepad.gamepads[0].X;
         }
+
+        return control;
+    }
+
+    update(...args: any[]): void {
+        super.update();
+        let control = this.getControllerState();
 
         // Controls
         if (control.right) {
