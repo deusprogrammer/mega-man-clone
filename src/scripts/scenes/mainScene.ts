@@ -28,10 +28,7 @@ export default class MainScene extends Phaser.Scene {
             megaBusterShot.destroy();
             enemy.onHit(megaBusterShot);
         });
-
-        this.physics.add.collider(this.player.bulletGroup, this.level.blocks, (megaBusterShot) => {
-            megaBusterShot.destroy();
-        });
+        
         this.physics.add.collider(this.enemyGroup, this.level.blocks, (obj) => {
             let enemy : MetHat = obj as MetHat;
             enemy.onCollision();

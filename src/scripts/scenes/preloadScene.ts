@@ -8,6 +8,7 @@ export default class PreloadScene extends Phaser.Scene {
   preload() {
     this.load.spritesheet('megaman', 'assets/img/megaman.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('methat', 'assets/img/methat.png', { frameWidth: 24, frameHeight: 24 });
+    this.load.image('shot', 'assets/img/shot.png');
     Object.keys(assetMap).forEach(key => {
         let asset : AssetMapEntry = assetMap[key];
         this.load.image(asset.name, asset.file);

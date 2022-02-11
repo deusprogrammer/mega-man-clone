@@ -123,14 +123,14 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         if (control.shoot && !this.isShooting) {
             this.isShooting = true;
 
-            let megaBusterShot = this.scene.physics.add.sprite(this.x + 32, this.y, 'wood1');
+            let megaBusterShot = this.scene.physics.add.sprite(this.x + 32, this.y, 'shot');
             this.scene.add.existing(megaBusterShot);
             
             this.bulletGroup.add(megaBusterShot, true);
 
+            megaBusterShot.scale *= 2;
             megaBusterShot.body.allowGravity = false;
             megaBusterShot
-                .setCollideWorldBounds(true)
                 .setVelocityX(this.flipX ? 300 : -300);
 
             setTimeout(() => {
