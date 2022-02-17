@@ -23,14 +23,14 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         this.bulletGroup = scene.physics.add.group();
 
         this.anims.create({
-            key: 'idle',
+            key: 'stand',
             frames: this.anims.generateFrameNumbers('megaman', { start: 0, end: 1 }),
             frameRate: 1,
             repeat: 1
         });
 
         this.anims.create({
-            key: 'idle-gun',
+            key: 'stand-gun',
             frames: this.anims.generateFrameNumbers('megaman', { start: 2, end: 2 }),
             frameRate: 1,
             repeat: 1
@@ -57,8 +57,21 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             repeat: 1
         });
 
+        this.anims.create({
+            key: 'jump-gun',
+            frames: this.anims.generateFrameNumbers('megaman', { start: 11, end: 11 }),
+            frameRate: 8,
+            repeat: 1
+        });
+
+        this.anims.create({
+            key: 'hurt',
+            frames: this.anims.generateFrameNumbers('megaman', { start: 12, end: 12 }),
+            frameRate: 8,
+            repeat: 1
+        });
+
         this.scale *= 2;
-        this.play('idle');
 
         this
             .setActive(true)
@@ -79,6 +92,8 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         this.scene.input.gamepad.once('connected', (pad) => {
             this.isGamepadConnected = true;
         });
+
+        this.state = 'standing';
     }
 
     getControllerState() {
@@ -106,6 +121,16 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         super.update();
         let control = this.getControllerState();
 
+        // If player is hurt, controls are locked.
+        if (this.state === 'hurt') {
+            this.play('hurt', true);
+            this.setVelocityX(this.flipX ? -40 : 40);
+            return;
+        }
+
+        // Set visible
+        this.setAlpha(1);
+
         // Controls
         if (control.right) {
             this.setVelocityX(150);
@@ -123,7 +148,7 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         if (control.shoot && !this.isShooting) {
             this.isShooting = true;
 
-            let megaBusterShot = this.scene.physics.add.sprite(this.x + 32, this.y, 'shot');
+            let megaBusterShot = this.scene.physics.add.sprite(this.x + (this.flipX ? 32 : -32), this.y, 'shot');
             this.scene.add.existing(megaBusterShot);
             
             this.bulletGroup.add(megaBusterShot, true);
@@ -145,13 +170,13 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             this.flipX = false;
         }
 
-        // If body is moving up or down, play jumping animation.
+        // Determine animation to play.
         if (!this.body.touching.down) {
-            this.play('jump', true);
+            this.play(this.isShooting ? 'jump-gun' : 'jump', true);
         } else if (this.body.velocity.x !== 0) {
             this.play(this.isShooting ? 'walk-gun' : 'walk', true);
         } else {
-            this.play(this.isShooting ? 'idle-gun' : 'idle');
+            this.play(this.isShooting ? 'stand-gun' : 'stand');
         }
 
         this.bulletGroup.children.each((child) => {
@@ -160,12 +185,23 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
     }
 
     onHit() {
+        // Implement iframes while hurt
+        if (this.state === 'hurt') {
+            return;
+        }
+
         console.log("PLAYER HIT");
+        this.state = 'hurt';
+        
+        setTimeout(() => {
+            this.state = 'standing';
+        }, 1000);
     }
 }
 
 export class MetHat extends Phaser.Physics.Arcade.Sprite {
     state : string;
+    isShooting : boolean;
 
     constructor(scene : MainScene, x : integer, y : integer) {
         super(scene, x, y, 'methat');
@@ -175,7 +211,7 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
         this.scale *= 1.5;
 
         this.anims.create({
-            key: 'idle',
+            key: 'guard',
             frames: this.anims.generateFrameNumbers('methat', { start: 0, end: 0 }),
             frameRate: 1,
             repeat: 1
@@ -189,14 +225,48 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
         });
 
         this.anims.create({
+            key: 'jump',
+            frames: this.anims.generateFrameNumbers('methat', { start: 2, end: 2 }),
+            frameRate: 8,
+            repeat: 1
+        });
+
+        this.anims.create({
+            key: 'jump-gun',
+            frames: this.anims.generateFrameNumbers('methat', { start: 2, end: 2 }),
+            frameRate: 8,
+            repeat: 1
+        });
+
+        this.anims.create({
             key: 'walk',
             frames: this.anims.generateFrameNumbers('methat', { start: 2, end: 3 }),
             frameRate: 8,
             repeat: 1
         });
 
-        this.state = "idle";
-        this.play('idle');
+        this.anims.create({
+            key: 'walk-gun',
+            frames: this.anims.generateFrameNumbers('methat', { start: 2, end: 3 }),
+            frameRate: 8,
+            repeat: 1
+        });
+
+        this.anims.create({
+            key: 'stand-gun',
+            frames: this.anims.generateFrameNumbers('methat', { start: 2, end: 2 }),
+            frameRate: 8,
+            repeat: 1
+        });
+
+        this.anims.create({
+            key: 'hurt',
+            frames: this.anims.generateFrameNumbers('methat', { start: 2, end: 2 }),
+            frameRate: 8,
+            repeat: 1
+        });
+
+        this.state = "guard";
     }
 
     onCollision() {
@@ -217,8 +287,7 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
     update() {
         super.update();
 
-        if (this.scene.game.loop.frame % 500 === 0 && this.body.touching.down && this.state === 'idle') {
-            this.play('stand', true);
+        if (this.scene.game.loop.frame % 500 === 0 && this.body.touching.down && this.state === 'guard') {
             this.state = 'standing';
 
             // Make him start walking shortly after standing up
@@ -230,14 +299,13 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
                 this.setVelocityX(-200);
             }, 200);
 
-            // Make him idle again after 10 seconds.
+            // Make him guard again after 10 seconds.
             setTimeout(() => {
                 if (!this || !this.body) {
                     return;
                 }
-                this.state = 'idle';
+                this.state = 'guard';
                 this.setVelocityX(0);
-                this.play('idle');
             }, 3000);
         }
 
@@ -248,8 +316,14 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
             this.flipX = false;
         }
 
-        if (this.body.velocity.x !== 0) {
-            this.play('walk', true);
+        if (this.state === 'hurt') {
+            this.play('hurt', true);
+        } else if (!this.body.touching.down) {
+            this.play(this.isShooting ? 'jump-gun' : 'jump', true);
+        } else if (this.body.velocity.x !== 0) {
+            this.play(this.isShooting ? 'walk-gun' : 'walk', true);
+        } else {
+            this.play(this.state === 'standing' ? (this.isShooting ? 'stand-gun': 'stand') : 'guard', true);
         }
     }
 }
