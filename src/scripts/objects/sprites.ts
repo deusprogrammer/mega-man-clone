@@ -14,6 +14,7 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
     isGamepadConnected: boolean;
     isShooting : boolean;
     bulletGroup: Phaser.Physics.Arcade.Group;
+    sounds : {[name: string]: Phaser.Sound.BaseSound} = {};
 
     constructor(scene : MainScene, x : integer, y : integer) {
         super(scene, x, y, 'megaman');
@@ -21,6 +22,10 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
 
         this.bulletGroup = scene.physics.add.group();
+        
+        this.sounds.land = this.scene.sound.add('land', {loop: false, volume: 1});
+        this.sounds.hit = this.scene.sound.add('hit', {loop: false, volume: 1});
+        this.sounds.buster = this.scene.sound.add('buster', {loop: false, volume: 1});
 
         this.anims.create({
             key: 'stand',
@@ -148,6 +153,8 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         if (control.shoot && !this.isShooting) {
             this.isShooting = true;
 
+            this.sounds.buster.play();
+
             let megaBusterShot = this.scene.physics.add.sprite(this.x + (this.flipX ? 32 : -32), this.y, 'shot');
             this.scene.add.existing(megaBusterShot);
             
@@ -170,8 +177,15 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
             this.flipX = false;
         }
 
+        // Determine sound to play based on state changes.
+        if (this.body.touching.down && this.state === 'jumping') {
+            this.state = 'standing';
+            this.sounds.land.play();
+        }
+
         // Determine animation to play.
         if (!this.body.touching.down) {
+            this.state = 'jumping';
             this.play(this.isShooting ? 'jump-gun' : 'jump', true);
         } else if (this.body.velocity.x !== 0) {
             this.play(this.isShooting ? 'walk-gun' : 'walk', true);
@@ -184,14 +198,15 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
         })
     }
 
-    onHit() {
-        // Implement iframes while hurt
+    onHit(damageSource) {
         if (this.state === 'hurt') {
             return;
         }
 
         console.log("PLAYER HIT");
         this.state = 'hurt';
+
+        this.sounds.hit.play();
         
         setTimeout(() => {
             this.state = 'standing';
@@ -202,6 +217,8 @@ export class MegaMan extends Phaser.Physics.Arcade.Sprite {
 export class MetHat extends Phaser.Physics.Arcade.Sprite {
     state : string;
     isShooting : boolean;
+    hp : integer;
+    sounds : {[name: string]: Phaser.Sound.BaseSound} = {};
 
     constructor(scene : MainScene, x : integer, y : integer) {
         super(scene, x, y, 'methat');
@@ -209,6 +226,10 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
 
         this.scale *= 1.5;
+
+        this.sounds.dink = this.scene.sound.add('dink', {loop: false, volume: 1});
+        this.sounds.enemyHit = this.scene.sound.add('enemy_hit', {loop: false, volume: 1});
+        this.sounds.enemyShoot = this.scene.sound.add('enemy_shoot', {loop: false, volume: 1});
 
         this.anims.create({
             key: 'guard',
@@ -266,10 +287,15 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
             repeat: 1
         });
 
-        this.state = "guard";
+        this.state = 'guard';
+        this.hp = 3;
     }
 
     onCollision() {
+        if (this.state === 'guard') {
+            return;
+        }
+
         // If collided with wall
         if (this.body.touching.left) {
             this.body.velocity.x = 200;
@@ -278,14 +304,29 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    onHit(weapon) {
+    onHit(weapon : Phaser.Physics.Arcade.Sprite) {
         console.log("ENEMY HIT");
 
-        this.destroy();
+        if (this.state === 'guard') {
+            this.sounds.dink.play();
+            weapon.setVelocity(-weapon.body.velocity.x, -Math.abs(weapon.body.velocity.x));
+            return;
+        }
+
+        weapon.destroy();
+
+        this.sounds.enemyHit.play();
+
+        this.hp--;
+        if (this.hp <= 0) {
+            this.destroy();
+        }
     }
 
     update() {
         super.update();
+
+        const scene : MainScene = this.scene as MainScene;
 
         if (this.scene.game.loop.frame % 500 === 0 && this.body.touching.down && this.state === 'guard') {
             this.state = 'standing';
@@ -295,6 +336,39 @@ export class MetHat extends Phaser.Physics.Arcade.Sprite {
                 if (!this) {
                     return;
                 }
+
+                this.sounds.enemyShoot.play();
+
+                let megaBusterShot = this.scene.physics.add.sprite(this.x + (this.flipX ? 32 : -32), this.y, 'shot');
+                this.scene.add.existing(megaBusterShot);
+                
+                scene.enemyBulletGroup.add(megaBusterShot, true);
+
+                megaBusterShot.scale *= 2;
+                megaBusterShot.body.allowGravity = false;
+                megaBusterShot
+                    .setVelocityX(this.flipX ? 300 : -300);
+
+                megaBusterShot = this.scene.physics.add.sprite(this.x + (this.flipX ? 32 : -32), this.y, 'shot');
+                this.scene.add.existing(megaBusterShot);
+                
+                scene.enemyBulletGroup.add(megaBusterShot, true);
+
+                megaBusterShot.scale *= 2;
+                megaBusterShot.body.allowGravity = false;
+                megaBusterShot
+                    .setVelocity(this.flipX ? 300 : -300, -75);
+
+                megaBusterShot = this.scene.physics.add.sprite(this.x + (this.flipX ? 32 : -32), this.y, 'shot');
+                this.scene.add.existing(megaBusterShot);
+                
+                scene.enemyBulletGroup.add(megaBusterShot, true);
+
+                megaBusterShot.scale *= 2;
+                megaBusterShot.body.allowGravity = false;
+                megaBusterShot
+                    .setVelocity(this.flipX ? 300 : -300, 75);
+
                 this.state = 'walking';
                 this.setVelocityX(-200);
             }, 200);
